@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>秋叶原冥途战争 · 情报终端</title>
+  <meta name="ext-resource-dependency" content="https://static.zeoseven.com/zsft/129/main/result.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=JetBrains+Mono:wght@400;700&display=swap">
+  <style>
+
+    :root {
+      --accent: #D9773E;
+      --bg: #080808;
+      --surface: #0A0A0A;
+      --text: #CCCCCC;
+      --dim: #666666;
+      --border: #D9773E44;
+      --accent-glow: #D9773E88;
+      --accent-faint: #D9773E22;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'ZSFT 129', 'DotGothic16', 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 14px;
+      min-height: 420px;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 0; }
+
+    /* ASCII banner */
+    .ascii-banner {
+      color: var(--accent);
+      font-size: 10px;
+      line-height: 1.25;
+      text-align: center;
+      padding: 8px 4px;
+      white-space: pre;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+      background: #0A0A0A;
+      text-shadow: 0 0 8px var(--border);
+    }
+
+    /* Pre tags */
+    pre {
+      font-family: 'ZSFT 129', 'JetBrains Mono', monospace;
+      overflow-x: auto;
+    }
+
+    /* Selection */
+    ::selection {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { text-shadow: 0 0 4px var(--border); }
+      50% { text-shadow: 0 0 12px var(--accent-glow); }
+    }
+
+    .glow-pulse { animation: glowPulse 3s ease-in-out infinite; }
+
+    /* RankBadge SYSTEM 类徽章脉冲 */
+    @keyframes rankPulse {
+      0%, 100% { box-shadow: 0 0 4px currentColor; opacity: 1; }
+      50%      { box-shadow: 0 0 12px currentColor; opacity: 0.85; }
+    }
+
+    .rank-pulse { animation: rankPulse 1.6s ease-in-out infinite; }
+
+    /* Root container */
+    #root {
+      max-width: 720px;
+      margin: 0 auto;
+      animation: fadeIn 0.3s ease;
+    }
+
+    /* Footer */
+    .terminal-footer {
+      text-align: center;
+      padding: 8px;
+      color: #333;
+      font-size: 10px;
+      border-top: 1px solid var(--accent-faint);
+    }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-source="mock-data.jsx">
+// Mock data for 秋叶原冥途战争 BBS
+const MOCK_DATA = {
+  system: {
+    date: "2026-04-28",
+    time: "11:14",
+    location: "秋叶原・中央通り"
+  },
+
+  organizations: {
+    "とんとことん（豚豚亭）": {
+      territory: "秋叶原駅東側・電気街口〜中央通り",
+      status: "⚔ 与「メイドリーミン」交战中"
+    },
+    "メイドリーミン": {
+      territory: "秋叶原駅西側・昭和通り〜末広町",
+      status: "🛡 防御态势・招募新人中"
+    },
+    "ケバブマフィア": {
+      territory: "秋叶原UDX周辺・裏路地",
+      status: "🔍 暗中观察・伺机而动"
+    }
+  },
+
+  characters: {
+    "なごみ（和）": {
+      organization: "とんとことん",
+      rank: "新人女仆",
+      affection: 45,
+      relation: "朋友",
+      location: "豚豚亭・厨房"
+    },
+    "嵐子（ランコ）": {
+      organization: "とんとことん",
+      rank: "No.1女仆",
+      affection: 62,
+      relation: "挚友",
+      location: "秋叶原・中央通り巡回中"
+    },
+    "しおん（紫苑）": {
+      organization: "メイドリーミン",
+      rank: "干部",
+      affection: 18,
+      relation: "陌生人",
+      location: "メイドリーミン本店・VIP室"
+    },
+    "ネルラ": {
+      organization: "ケバブマフィア",
+      rank: "情报屋",
+      affection: 33,
+      relation: "相识",
+      location: "秋叶原UDX・屋台前"
+    }
+  },
+
+  posts: [
+    {
+      id: 1,
+      type: "character_post",
+      author: "嵐子（ランコ）",
+      color: "#D9773E",
+      rank: "No.1女仆",
+      timestamp: "2026-04-28 10:58",
+      location: "秋叶原・中央通り",
+      content: "今天在中央通り发传单的时候，看到メイドリーミン那边的人也在拉客…空气突然变得剑拔弩张。不过身为No.1，绝对不能让步。这条街是我们豚豚亭的地盘。\n\n传单发完之后去便利店买了布丁，嵐子大胜利。",
+      trajectory: ["豚豚亭", "中央通り", "ローソン秋叶原店"],
+      replies: [
+        {
+          author: "なごみ（和）",
+          content: "ランコ前辈好帅！请也给我带一个布丁！🍮",
+          color: "#7EB8DA"
+        }
+      ]
+    },
+    {
+      id: 2,
+      type: "news_post",
+      author: "系统播报",
+      color: "#E5C07B",
+      rank: "SYSTEM",
+      timestamp: "2026-04-28 09:30",
+      location: "秋叶原全域",
+      content: "【速报】昨夜，位于末広町的「メイドカフェぴゅあはーと」宣布闭店。据内部消息，该店铺疑似因卷入势力纷争而被迫关门。目前，其原有地盘已成为各方争夺的焦点。",
+      trajectory: [],
+      replies: [
+        {
+          author: "ネルラ",
+          content: "啊啦，又一家倒下了呢。这条街可真是不温柔啊。",
+          color: "#C678DD"
+        },
+        {
+          author: "嵐子（ランコ）",
+          content: "弱肉强食，这就是秋叶原的规矩。",
+          color: "#D9773E"
+        }
+      ]
+    },
+    {
+      id: 3,
+      type: "character_post",
+      author: "ネルラ",
+      color: "#C678DD",
+      rank: "情报屋",
+      timestamp: "2026-04-28 08:15",
+      location: "秋叶原UDX・屋台前",
+      content: "一边烤着kebab一边听到了有趣的情报。据说有个新的组织打算进入秋叶原…名字好像叫什么「ワンダーメイド」？\n\n情报的价格嘛…一串kebab就好啦♪",
+      trajectory: ["ケバブ屋台", "秋叶原UDX"],
+      replies: []
+    }
+  ]
+};
+
+window.MOCK_DATA = MOCK_DATA;
+
+</script>
+  <script type="text/babel" data-source="mvu-adapter.jsx">
+// mvu-adapter.jsx
+// 数据流适配层：把 MVU schema (中文键) 翻译成前端组件期望的形态 (英文键)
+//
+//   stat_data ─┐
+//              │
+//              ▼
+//   adaptStatData() ──► front-end data (system / organizations / characters / posts)
+//
+// 兼容策略：
+//   - 在酒馆助手 iframe 内：通过 Mvu.getMvuData 抓取当前楼层 stat_data
+//   - 在本地浏览器测试 (file:// 或 python http.server)：检测不到 Mvu 接口，回退 window.MOCK_DATA
+//   - 任意一步失败：打印 warn 后兜底，前端组件不感知
+//
+// 整个 loadData 暴露成 window.loadData，App 组件用 useEffect 调用。
+
+// ─────────────────────────────────────────────────────────────────────────────
+// adaptStatData: 中文 schema → 英文前端形态
+// ─────────────────────────────────────────────────────────────────────────────
+function adaptStatData(stat) {
+  if (!stat) return null;
+
+  return {
+    system: {
+      date:     _.get(stat, '系统变量.日期', ''),
+      time:     _.get(stat, '系统变量.时间', ''),
+      location: _.get(stat, '系统变量.当前位置', ''),
+    },
+
+    organizations: _.mapValues(_.get(stat, '组织表', {}), org => ({
+      territory: _.get(org, '势力范围', ''),
+      status:    _.get(org, '当前状态', ''),
+      color:     _.get(org, 'color', '#D9773E'),
+    })),
+
+    characters: _.mapValues(_.get(stat, '角色表', {}), char => ({
+      organization: _.get(char, '所属组织', ''),
+      rank:         _.get(char, '职级', ''),
+      affection:    _.get(char, '好感度', 0),
+      relation:     _.get(char, '关系', '陌生人'),
+      location:     _.get(char, '当前位置', ''),
+      color:        _.get(char, 'color', '#888888'),
+    })),
+
+    posts: _.get(stat, '帖子流', []).map((post, i) => ({
+      id:         i + 1,
+      type:       _.get(post, '帖子类型', 'character_post'),
+      author:     _.get(post, '作者', ''),
+      color:      _.get(post, 'color', '#D9773E'),
+      rank:       _.get(post, '职级', ''),
+      timestamp:  _.get(post, '时间戳', ''),
+      location:   _.get(post, '当前位置', ''),
+      content:    _.get(post, '帖子内容', ''),
+      trajectory: _.get(post, '活动轨迹', []),
+      replies:    _.get(post, '回帖', []).map(r => ({
+        author:  _.get(r, 'character_reply', ''),
+        color:   _.get(r, 'color', '#888888'),
+        content: _.get(r, '回帖内容', ''),
+      })),
+    })),
+  };
+}
+window.adaptStatData = adaptStatData;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// loadData: 主入口，返回 Promise<frontEndData>
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadData({ timeoutMs = 3000 } = {}) {
+  const hasMvu =
+    typeof Mvu !== 'undefined' &&
+    typeof waitGlobalInitialized === 'function' &&
+    typeof waitUntil === 'function' &&
+    typeof getVariables === 'function' &&
+    typeof getCurrentMessageId === 'function';
+
+  if (!hasMvu) {
+    console.info('[mvu-adapter] MVU 接口不可用 (本地预览或非酒馆环境)，使用 MOCK_DATA');
+    return window.MOCK_DATA;
+  }
+
+  try {
+    await waitGlobalInitialized('Mvu');
+    await waitUntil(
+      () => _.has(getVariables({ type: 'message' }), 'stat_data'),
+      { timeout: timeoutMs },
+    );
+
+    const variables = Mvu.getMvuData({
+      type: 'message',
+      message_id: getCurrentMessageId(),
+    });
+    const stat = _.get(variables, 'stat_data');
+
+    if (!stat) throw new Error('stat_data is empty');
+
+    const adapted = adaptStatData(stat);
+    console.info('[mvu-adapter] MVU 数据加载完成', adapted);
+    return adapted;
+  } catch (e) {
+    console.warn('[mvu-adapter] 抓取 MVU 失败，回退到 MOCK_DATA：', e);
+    return window.MOCK_DATA;
+  }
+}
+window.loadData = loadData;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// subscribeMvuUpdates: 监听 MVU 变量变化，触发回调（供 App 实现自动刷新）
+// 在非酒馆环境中是 no-op，返回一个空 dispose 函数
+// ─────────────────────────────────────────────────────────────────────────────
+function subscribeMvuUpdates(onUpdate) {
+  const hasMvuEvents =
+    typeof Mvu !== 'undefined' &&
+    Mvu.events &&
+    typeof eventOn === 'function' &&
+    typeof eventRemoveListener === 'function';
+
+  if (!hasMvuEvents) return () => {};
+
+  const handler = (newVars) => {
+    try {
+      const stat = _.get(newVars, 'stat_data');
+      if (stat) onUpdate(adaptStatData(stat));
+    } catch (e) {
+      console.warn('[mvu-adapter] VARIABLE_UPDATE_ENDED 处理失败：', e);
+    }
+  };
+
+  eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, handler);
+  return () => eventRemoveListener(Mvu.events.VARIABLE_UPDATE_ENDED, handler);
+}
+window.subscribeMvuUpdates = subscribeMvuUpdates;
+
+</script>
+  <script type="text/babel" data-source="ascii-assets.jsx">
+// ASCII art assets and utility components
+const ASCII = {
+  // Top banner
+  banner: `
+╔══════════════════════════════════════════════════════════════════╗
+║  ░█▀▀░█░█░█▀▀░▀█▀░█▀▀░█▄█░░░█▀▄░█▀▄░█▀▀░░░▀█▀░█▀▀░█▀▄░█▄█  ║
+║  ░▀▀█░░█░░▀▀█░░█░░█▀▀░█░█░░░█▀▄░█▀▄░▀▀█░░░░█░░█▀▀░█▀▄░█░█  ║
+║  ░▀▀▀░░▀░░▀▀▀░░▀░░▀▀▀░▀░▀░░░▀▀░░▀▀░░▀▀▀░░░░▀░░▀▀▀░▀░▀░▀░▀  ║
+║            >>> 秋 叶 原 冥 途 战 争 · 情 报 终 端 <<<            ║
+╚══════════════════════════════════════════════════════════════════╝`.trim(),
+
+  // Section headers
+  sectionTop:    '┌─────────────────────────────────────────────────────┐',
+  sectionBot:    '└─────────────────────────────────────────────────────┘',
+  sectionDiv:    '├─────────────────────────────────────────────────────┤',
+  
+  // Post borders (character_post - diary)
+  diaryTop:      '╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╮',
+  diaryBot:      '╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╯',
+  diaryDiv:      '┊···············································┊',
+
+  // Post borders (news_post)
+  newsTop:       '╔═══════════════════════════════════════════════════════╗',
+  newsBot:       '╚═══════════════════════════════════════════════════════╝',
+  newsDiv:       '╠═══════════════════════════════════════════════════════╣',
+
+  // Reply borders
+  replyMark:     '┃▌',
+
+  // Small decorations
+  bullet:        '►',
+  arrow:         '→',
+  cursor:        '█',
+  dot:           '·',
+  star:          '★',
+  diamond:       '◆',
+
+  // Trajectory arrow builder
+  trajectory: (arr) => arr.join(' → '),
+
+  // Rank badges
+  rankBadge: (rank) => `【${rank}】`,
+
+  // Mini separator
+  miniSep: '─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─',
+
+  // Status bar decorations  
+  statusLeft:  '◄',
+  statusRight: '►',
+};
+
+window.ASCII = ASCII;
+
+// --- Typing animation hook ---
+function useTypingEffect(text, speed = 30, trigger = true) {
+  const [displayed, setDisplayed] = React.useState('');
+  const [done, setDone] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!trigger) { setDisplayed(''); setDone(false); return; }
+    setDisplayed('');
+    setDone(false);
+    let i = 0;
+    const iv = setInterval(() => {
+      i++;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) { clearInterval(iv); setDone(true); }
+    }, speed);
+    return () => clearInterval(iv);
+  }, [text, speed, trigger]);
+
+  return [displayed, done];
+}
+window.useTypingEffect = useTypingEffect;
+
+// --- Blinking cursor component ---
+function BlinkCursor({ color = '#D9773E' }) {
+  const [on, setOn] = React.useState(true);
+  React.useEffect(() => {
+    const iv = setInterval(() => setOn(v => !v), 530);
+    return () => clearInterval(iv);
+  }, []);
+  return React.createElement('span', {
+    style: { color, opacity: on ? 1 : 0, fontWeight: 'bold' }
+  }, '█');
+}
+window.BlinkCursor = BlinkCursor;
+
+// --- Relation color mapping ---
+function getRelationColor(relation) {
+  const map = {
+    '陌生人': '#666666',
+    '相识': '#7EB8DA',
+    '朋友': '#98C379',
+    '挚友': '#E5C07B',
+    '恋人': '#E06C75'
+  };
+  return map[relation] || '#888';
+}
+window.getRelationColor = getRelationColor;
+
+// --- Affection bar ---
+function AffectionBar({ value, max = 100 }) {
+  const filled = Math.round((value / max) * 20);
+  const empty = 20 - filled;
+  const color = value > 80 ? '#E06C75' : value > 60 ? '#E5C07B' : value > 40 ? '#98C379' : '#7EB8DA';
+  return React.createElement('span', { style: { fontFamily: 'monospace' } },
+    React.createElement('span', { style: { color } }, '█'.repeat(filled)),
+    React.createElement('span', { style: { color: '#333' } }, '░'.repeat(empty)),
+    React.createElement('span', { style: { color: '#888', marginLeft: '4px' } }, `${value}/${max}`)
+  );
+}
+window.AffectionBar = AffectionBar;
+
+// --- Rank style map: 按职级关键字匹配差异化样式 ---
+// 顺序敏感：先特殊后通用，第一个命中即返回
+const RANK_STYLE = [
+  { match: /SYSTEM|系统播报|播报/i, icon: '⚡', accent: '#E5C07B', pulse: true,  invertBg: true },
+  { match: /头目|老大|店长|店主|经营者/,    icon: '♛', accent: '#E5C07B', pulse: false },
+  { match: /No\.\s*1|首席|ACE/i,            icon: '★', accent: '#E5C07B', pulse: false },
+  { match: /武斗派|打手|護衛|护卫/,          icon: '✊', accent: '#FF6B6B', pulse: false },
+  { match: /军师|参謀|参谋/,                icon: '♜', accent: '#C678DD', pulse: false },
+  { match: /副手|二把手|秘书|干部|幹部/,    icon: '◇', accent: '#C678DD', pulse: false },
+  { match: /情报屋|情報屋|内线|間者|探/,    icon: '✦', accent: '#7EB8DA', pulse: false },
+  { match: /新人|見習|见习/,                icon: '◦', accent: '#98C379', pulse: false },
+];
+
+function getRankStyle(rank) {
+  if (!rank) return null;
+  return RANK_STYLE.find(s => s.match.test(rank)) || null;
+}
+window.getRankStyle = getRankStyle;
+
+// --- RankBadge: 统一徽章渲染组件 ---
+// rank: 职级文本; fallbackColor: 默认背景色（通常为作者color）; bracket: 是否包【】
+function RankBadge({ rank, fallbackColor, bracket = false }) {
+  if (!rank) return null;
+  const style = getRankStyle(rank);
+  const text = bracket ? `【${rank}】` : rank;
+
+  // 默认（无映射命中）：维持原有外观
+  if (!style) {
+    return React.createElement('span', {
+      style: {
+        color: '#0D0D0D', background: fallbackColor,
+        padding: '1px 6px', fontSize: '10px', fontWeight: 'bold',
+      }
+    }, text);
+  }
+
+  // SYSTEM 等需要反色 + 脉冲：深底亮字
+  const baseStyle = style.invertBg
+    ? {
+        color: style.accent, background: '#0D0D0D',
+        padding: '1px 6px', fontSize: '10px', fontWeight: 'bold',
+        border: `1px solid ${style.accent}`,
+      }
+    : {
+        color: '#0D0D0D', background: fallbackColor,
+        padding: '1px 6px', fontSize: '10px', fontWeight: 'bold',
+        border: `1px solid ${style.accent}`,
+        boxShadow: `0 0 4px ${style.accent}66`,
+      };
+
+  return React.createElement('span', {
+    className: style.pulse ? 'rank-pulse' : undefined,
+    style: baseStyle,
+  },
+    React.createElement('span', { style: { marginRight: '3px' } }, style.icon),
+    text
+  );
+}
+window.RankBadge = RankBadge;
+
+</script>
+  <script type="text/babel" data-source="panels.jsx">
+// Collapsible panel components
+
+// --- CollapsibleSection: a terminal-style foldable panel ---
+function CollapsibleSection({ title, icon, defaultOpen = false, children, borderColor = '#D9773E' }) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  const [animClass, setAnimClass] = React.useState(defaultOpen ? 'panel-open' : 'panel-closed');
+
+  const toggle = () => {
+    if (open) {
+      setAnimClass('panel-closing');
+      setTimeout(() => { setOpen(false); setAnimClass('panel-closed'); }, 250);
+    } else {
+      setOpen(true);
+      setAnimClass('panel-opening');
+      setTimeout(() => setAnimClass('panel-open'), 20);
+    }
+  };
+
+  const headerStyle = {
+    display: 'flex', alignItems: 'center', gap: '8px',
+    padding: '6px 10px', cursor: 'pointer', userSelect: 'none',
+    color: borderColor, fontWeight: 'bold',
+    borderBottom: open ? `1px solid ${borderColor}33` : 'none',
+    transition: 'background 0.2s',
+    background: 'transparent',
+  };
+
+  const bodyStyle = {
+    overflow: 'hidden',
+    maxHeight: (animClass === 'panel-open') ? '2000px' : (animClass === 'panel-opening' ? '2000px' : '0px'),
+    opacity: (animClass === 'panel-open' || animClass === 'panel-opening') ? 1 : 0,
+    transition: 'max-height 0.4s ease, opacity 0.3s ease',
+    padding: open ? '8px 10px' : '0 10px',
+  };
+
+  const indicator = open ? '[-]' : '[+]';
+
+  return React.createElement('div', {
+    style: {
+      border: `1px solid ${borderColor}44`,
+      marginBottom: '4px',
+      background: '#0D0D0D',
+    }
+  },
+    React.createElement('div', {
+      style: headerStyle,
+      onClick: toggle,
+      onMouseEnter: (e) => e.currentTarget.style.background = `${borderColor}11`,
+      onMouseLeave: (e) => e.currentTarget.style.background = 'transparent',
+    },
+      React.createElement('span', { style: { color: '#888', fontFamily: 'monospace', fontSize: '12px' } }, indicator),
+      React.createElement('span', null, icon || ''),
+      React.createElement('span', null, title),
+      React.createElement('span', { style: { marginLeft: 'auto', color: '#555', fontSize: '11px' } },
+        open ? '折叠' : '展开'
+      )
+    ),
+    open && React.createElement('div', { style: bodyStyle }, children)
+  );
+}
+window.CollapsibleSection = CollapsibleSection;
+
+
+// --- StatusBar: the top-level collapsed terminal bar ---
+function StatusBar({ data, borderColor = '#D9773E', rightSlot }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const sys = data.system;
+
+  const barStyle = {
+    display: 'flex', alignItems: 'center', gap: '12px',
+    padding: '8px 12px', cursor: 'pointer', userSelect: 'none',
+    background: '#0A0A0A',
+    borderBottom: `1px solid ${borderColor}66`,
+    color: '#AAA', fontSize: '13px',
+    transition: 'background 0.2s',
+  };
+
+  return React.createElement('div', null,
+    React.createElement('div', {
+      style: barStyle,
+      onClick: () => setExpanded(v => !v),
+      onMouseEnter: (e) => e.currentTarget.style.background = '#111',
+      onMouseLeave: (e) => e.currentTarget.style.background = '#0A0A0A',
+    },
+      React.createElement('span', { style: { color: borderColor, fontWeight: 'bold' } }, expanded ? '▼' : '►'),
+      React.createElement('span', { style: { color: borderColor } }, '秋叶原情报终端'),
+      React.createElement('span', { style: { color: '#555' } }, '│'),
+      React.createElement('span', null, `📅 ${sys.date}`),
+      React.createElement('span', { style: { color: '#555' } }, '│'),
+      React.createElement('span', null, `⏰ ${sys.time}`),
+      React.createElement('span', { style: { color: '#555' } }, '│'),
+      React.createElement('span', null, `📍 ${sys.location || '未知'}`),
+      React.createElement('span', {
+        style: { marginLeft: 'auto', display: 'inline-flex', alignItems: 'center' },
+        onClick: (e) => e.stopPropagation(),
+      },
+        rightSlot != null ? rightSlot : React.createElement(BlinkCursor, { color: borderColor })
+      )
+    ),
+    expanded && React.createElement(ExpandedTerminal, { data, borderColor })
+  );
+}
+window.StatusBar = StatusBar;
+
+
+// --- ExpandedTerminal: the full interface when statusbar is expanded ---
+function ExpandedTerminal({ data, borderColor }) {
+  return React.createElement('div', {
+    style: { background: '#0A0A0A', padding: '4px 0' }
+  },
+    // Organization panel
+    React.createElement(CollapsibleSection, {
+      title: '组织情报一览', icon: '🏴', borderColor,
+    },
+      React.createElement(OrgPanel, { orgs: data.organizations, borderColor })
+    ),
+    // Character panel
+    React.createElement(CollapsibleSection, {
+      title: '角色档案', icon: '👤', borderColor,
+    },
+      React.createElement(CharPanel, { chars: data.characters, borderColor })
+    ),
+    // Posts panel
+    React.createElement(CollapsibleSection, {
+      title: '帖子情报流', icon: '📋', borderColor, defaultOpen: true,
+    },
+      React.createElement(PostFeed, { posts: data.posts, borderColor })
+    )
+  );
+}
+window.ExpandedTerminal = ExpandedTerminal;
+
+</script>
+  <script type="text/babel" data-source="data-panels.jsx">
+// Organization and Character sub-panels
+
+function OrgPanel({ orgs, borderColor }) {
+  const entries = Object.entries(orgs);
+  return React.createElement('div', { style: { fontSize: '13px' } },
+    React.createElement('pre', {
+      style: { color: borderColor, margin: '0 0 6px 0', fontSize: '11px', lineHeight: 1.4 }
+    }, ASCII.sectionTop),
+    entries.map(([name, info], i) =>
+      React.createElement('div', { key: name, style: { marginBottom: i < entries.length - 1 ? '8px' : 0 } },
+        React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'baseline' } },
+          React.createElement('span', { style: { color: borderColor } }, ASCII.bullet),
+          React.createElement('span', { style: { color: '#E5C07B', fontWeight: 'bold' } }, name),
+        ),
+        React.createElement('div', { style: { paddingLeft: '20px', color: '#AAA' } },
+          React.createElement('div', null,
+            React.createElement('span', { style: { color: '#666' } }, '势力范围: '),
+            info.territory
+          ),
+          React.createElement('div', null,
+            React.createElement('span', { style: { color: '#666' } }, '当前状态: '),
+            React.createElement('span', { style: { color: '#98C379' } }, info.status)
+          ),
+        ),
+        i < entries.length - 1 && React.createElement('pre', {
+          style: { color: '#333', margin: '6px 0 2px 0', fontSize: '11px' }
+        }, ASCII.miniSep)
+      )
+    ),
+    React.createElement('pre', {
+      style: { color: borderColor, margin: '6px 0 0 0', fontSize: '11px', lineHeight: 1.4 }
+    }, ASCII.sectionBot)
+  );
+}
+window.OrgPanel = OrgPanel;
+
+
+function CharPanel({ chars, borderColor }) {
+  const entries = Object.entries(chars);
+  return React.createElement('div', { style: { fontSize: '13px' } },
+    React.createElement('pre', {
+      style: { color: borderColor, margin: '0 0 6px 0', fontSize: '11px', lineHeight: 1.4 }
+    }, ASCII.sectionTop),
+    entries.map(([name, info], i) =>
+      React.createElement('div', { key: name, style: { marginBottom: '8px' } },
+        // Name + rank
+        React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
+          React.createElement('span', { style: { color: borderColor } }, ASCII.diamond),
+          React.createElement('span', { style: { color: '#E5C07B', fontWeight: 'bold' } }, name),
+          React.createElement(RankBadge, { rank: info.rank, fallbackColor: info.color || borderColor, bracket: false }),
+        ),
+        // Details
+        React.createElement('div', { style: { paddingLeft: '20px', color: '#AAA', lineHeight: 1.7 } },
+          React.createElement('div', null,
+            React.createElement('span', { style: { color: '#666' } }, '所属: '),
+            info.organization
+          ),
+          React.createElement('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' } },
+            React.createElement('span', { style: { color: '#666' } }, '好感: '),
+            React.createElement(AffectionBar, { value: info.affection }),
+          ),
+          React.createElement('div', null,
+            React.createElement('span', { style: { color: '#666' } }, '关系: '),
+            React.createElement('span', { style: { color: getRelationColor(info.relation) } }, info.relation),
+          ),
+          React.createElement('div', null,
+            React.createElement('span', { style: { color: '#666' } }, '位置: '),
+            React.createElement('span', { style: { color: '#7EB8DA' } }, info.location),
+          ),
+        ),
+        i < entries.length - 1 && React.createElement('pre', {
+          style: { color: '#333', margin: '6px 0 2px 0', fontSize: '11px' }
+        }, ASCII.miniSep)
+      )
+    ),
+    React.createElement('pre', {
+      style: { color: borderColor, margin: '6px 0 0 0', fontSize: '11px', lineHeight: 1.4 }
+    }, ASCII.sectionBot)
+  );
+}
+window.CharPanel = CharPanel;
+
+</script>
+  <script type="text/babel" data-source="posts.jsx">
+// Post feed and individual post components
+
+function PostFeed({ posts, borderColor }) {
+  const [page, setPage] = React.useState(0);
+  const perPage = 3;
+  const total = posts.length;
+  const visible = posts.slice(page * perPage, (page + 1) * perPage);
+
+  return React.createElement('div', null,
+    visible.map((post, i) =>
+      React.createElement('div', { key: post.id, style: { marginBottom: '10px' } },
+        post.type === 'character_post'
+          ? React.createElement(CharacterPost, { post, borderColor })
+          : React.createElement(NewsPost, { post, borderColor }),
+      )
+    ),
+    total > perPage && React.createElement('div', {
+      style: { display: 'flex', justifyContent: 'center', gap: '16px', padding: '8px 0', color: '#666', fontSize: '12px' }
+    },
+      React.createElement('span', {
+        style: { cursor: page > 0 ? 'pointer' : 'default', color: page > 0 ? borderColor : '#333' },
+        onClick: () => page > 0 && setPage(p => p - 1)
+      }, '◄ 上一页'),
+      React.createElement('span', null, `${page + 1}/${Math.ceil(total / perPage)}`),
+      React.createElement('span', {
+        style: { cursor: (page + 1) * perPage < total ? 'pointer' : 'default', color: (page + 1) * perPage < total ? borderColor : '#333' },
+        onClick: () => (page + 1) * perPage < total && setPage(p => p + 1)
+      }, '下一页 ►'),
+    )
+  );
+}
+window.PostFeed = PostFeed;
+
+
+// --- Character Post (diary style) ---
+function CharacterPost({ post, borderColor }) {
+  const c = post.color || borderColor;
+  const [collapsed, setCollapsed] = React.useState(false);
+
+  return React.createElement('div', {
+    style: {
+      background: 'linear-gradient(135deg, #1a1410 0%, #12100e 100%)',
+      border: `1px solid ${c}44`,
+      position: 'relative',
+      overflow: 'hidden',
+    }
+  },
+    // Paper texture overlay
+    React.createElement('div', {
+      style: {
+        position: 'absolute', inset: 0, opacity: 0.03, pointerEvents: 'none',
+        backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 3px, ${c} 3px, ${c} 4px)`,
+      }
+    }),
+    // Header
+    React.createElement('div', {
+      style: {
+        display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px',
+        borderBottom: `1px dashed ${c}33`, cursor: 'pointer', flexWrap: 'wrap',
+      },
+      onClick: () => setCollapsed(v => !v),
+    },
+      React.createElement('span', { style: { color: '#555', fontSize: '11px', fontFamily: 'monospace' } }, collapsed ? '[+]' : '[-]'),
+      React.createElement('span', { style: { color: c, fontWeight: 'bold' } }, post.author),
+      React.createElement(RankBadge, { rank: post.rank, fallbackColor: c, bracket: true }),
+      React.createElement('span', { style: { color: '#555', fontSize: '11px', marginLeft: 'auto' } }, post.timestamp),
+    ),
+    !collapsed && React.createElement('div', { style: { padding: '10px 12px', position: 'relative' } },
+      // Location
+      React.createElement('div', { style: { color: '#7EB8DA', fontSize: '11px', marginBottom: '6px' } },
+        `📍 ${post.location}`
+      ),
+      // Content (italic for diary)
+      React.createElement('div', {
+        style: {
+          color: '#CCC', fontStyle: 'italic', lineHeight: 1.7, whiteSpace: 'pre-wrap',
+          padding: '8px 0', borderTop: `1px dotted ${c}22`, borderBottom: `1px dotted ${c}22`,
+          margin: '4px 0',
+        }
+      }, post.content),
+      // Trajectory
+      post.trajectory && post.trajectory.length > 0 && React.createElement('div', {
+        style: { color: '#888', fontSize: '12px', marginTop: '8px' }
+      },
+        React.createElement('span', { style: { color: '#666' } }, '🗺 轨迹: '),
+        React.createElement('span', { style: { color: '#E5C07B' } }, ASCII.trajectory(post.trajectory))
+      ),
+      // Replies
+      post.replies && post.replies.length > 0 && React.createElement(ReplySection, { replies: post.replies, borderColor: c })
+    ),
+  );
+}
+window.CharacterPost = CharacterPost;
+
+
+// --- News Post (headline style) ---
+function NewsPost({ post, borderColor }) {
+  const c = post.color || borderColor;
+  const [collapsed, setCollapsed] = React.useState(false);
+
+  return React.createElement('div', {
+    style: {
+      background: '#0D0D0D',
+      border: `1px solid ${c}66`,
+      borderLeft: `3px solid ${c}`,
+    }
+  },
+    // Header with heavy ASCII
+    React.createElement('pre', {
+      style: { color: c, margin: 0, padding: '4px 10px 0', fontSize: '10px', lineHeight: 1.2, overflow: 'hidden' }
+    }, '╔══════════════════════ BREAKING NEWS ══════════════════════╗'),
+    React.createElement('div', {
+      style: {
+        display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px',
+        cursor: 'pointer', flexWrap: 'wrap',
+      },
+      onClick: () => setCollapsed(v => !v),
+    },
+      React.createElement('span', { style: { color: '#555', fontSize: '11px', fontFamily: 'monospace' } }, collapsed ? '[+]' : '[-]'),
+      React.createElement('span', { style: { color: c, fontWeight: 'bold', fontSize: '15px' } }, '⚡ ' + post.author),
+      React.createElement(RankBadge, { rank: post.rank, fallbackColor: c, bracket: false }),
+      React.createElement('span', { style: { color: '#555', fontSize: '11px', marginLeft: 'auto' } }, post.timestamp),
+    ),
+    !collapsed && React.createElement('div', { style: { padding: '6px 12px 10px' } },
+      React.createElement('pre', {
+        style: { color: `${c}66`, margin: '0 0 6px 0', fontSize: '10px' }
+      }, '╠═══════════════════════════════════════════════════════════╣'),
+      React.createElement('div', {
+        style: { color: '#DDD', lineHeight: 1.7, whiteSpace: 'pre-wrap' }
+      }, post.content),
+      React.createElement('pre', {
+        style: { color: `${c}66`, margin: '8px 0 0 0', fontSize: '10px' }
+      }, '╚═══════════════════════════════════════════════════════════╝'),
+      post.replies && post.replies.length > 0 && React.createElement(ReplySection, { replies: post.replies, borderColor: c })
+    ),
+  );
+}
+window.NewsPost = NewsPost;
+
+
+// --- Reply Section (BBS floor style) ---
+function ReplySection({ replies, borderColor }) {
+  const [expanded, setExpanded] = React.useState(false);
+
+  return React.createElement('div', { style: { marginTop: '10px' } },
+    React.createElement('div', {
+      style: {
+        color: '#666', fontSize: '12px', cursor: 'pointer', userSelect: 'none',
+        display: 'flex', alignItems: 'center', gap: '6px',
+      },
+      onClick: () => setExpanded(v => !v),
+    },
+      React.createElement('span', null, expanded ? '▼' : '►'),
+      React.createElement('span', null, `回帖 (${replies.length}层)`),
+    ),
+    expanded && React.createElement('div', { style: { marginTop: '6px' } },
+      replies.map((reply, i) =>
+        React.createElement('div', {
+          key: i,
+          style: {
+            display: 'flex', gap: '8px', padding: '6px 0 6px 8px',
+            borderLeft: `2px solid ${reply.color || borderColor}44`,
+            marginBottom: '4px', fontSize: '13px',
+          }
+        },
+          React.createElement('div', null,
+            React.createElement('div', { style: { display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '2px' } },
+              React.createElement('span', { style: { color: '#555', fontSize: '10px', fontFamily: 'monospace' } }, `${i + 1}F`),
+              React.createElement('span', { style: { color: reply.color || borderColor, fontWeight: 'bold', fontSize: '12px' } }, reply.author),
+            ),
+            React.createElement('div', { style: { color: '#BBB' } }, reply.content),
+          )
+        )
+      )
+    )
+  );
+}
+window.ReplySection = ReplySection;
+
+</script>
+  <script type="text/babel" data-source="tweaks-panel.jsx">
+
+// tweaks-panel.jsx
+// Reusable Tweaks shell + form-control helpers.
+//
+// Owns the host protocol (listens for __activate_edit_mode / __deactivate_edit_mode,
+// posts __edit_mode_available / __edit_mode_set_keys / __edit_mode_dismissed) so
+// individual prototypes don't re-roll it. Ships a consistent set of controls so you
+// don't hand-draw <input type="range">, segmented radios, steppers, etc.
+//
+// Usage (in an HTML file that loads React + Babel):
+//
+//   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+//     "primaryColor": "#D97757",
+//     "fontSize": 16,
+//     "density": "regular",
+//     "dark": false
+//   }/*EDITMODE-END*/;
+//
+//   function App() {
+//     const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+//     return (
+//       <div style={{ fontSize: t.fontSize, color: t.primaryColor }}>
+//         Hello
+//         <TweaksPanel>
+//           <TweakSection label="Typography" />
+//           <TweakSlider label="Font size" value={t.fontSize} min={10} max={32} unit="px"
+//                        onChange={(v) => setTweak('fontSize', v)} />
+//           <TweakRadio  label="Density" value={t.density}
+//                        options={['compact', 'regular', 'comfy']}
+//                        onChange={(v) => setTweak('density', v)} />
+//           <TweakSection label="Theme" />
+//           <TweakColor  label="Primary" value={t.primaryColor}
+//                        onChange={(v) => setTweak('primaryColor', v)} />
+//           <TweakToggle label="Dark mode" value={t.dark}
+//                        onChange={(v) => setTweak('dark', v)} />
+//         </TweaksPanel>
+//       </div>
+//     );
+//   }
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+    background:rgba(250,249,247,.78);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
+    width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
+    overflow-y:auto;overflow-x:hidden;min-height:0;
+    scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.15) transparent}
+  .twk-body::-webkit-scrollbar{width:8px}
+  .twk-body::-webkit-scrollbar-track{background:transparent;margin:2px}
+  .twk-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px;
+    border:2px solid transparent;background-clip:content-box}
+  .twk-body::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.25);
+    border:2px solid transparent;background-clip:content-box}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;
+    color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
+
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+
+  .twk-field{appearance:none;width:100%;height:26px;padding:0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;
+    background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
+  .twk-field:focus{border-color:rgba(0,0,0,.25);background:rgba(255,255,255,.85)}
+  select.twk-field{padding-right:22px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>");
+    background-repeat:no-repeat;background-position:right 8px center}
+
+  .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
+    border-radius:999px;background:rgba(0,0,0,.12);outline:none}
+  .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:14px;height:14px;border-radius:50%;background:#fff;
+    border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+  .twk-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;
+    background:#fff;border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+
+  .twk-seg{position:relative;display:flex;padding:2px;border-radius:8px;
+    background:rgba(0,0,0,.06);user-select:none}
+  .twk-seg-thumb{position:absolute;top:2px;bottom:2px;border-radius:6px;
+    background:rgba(255,255,255,.9);box-shadow:0 1px 2px rgba(0,0,0,.12);
+    transition:left .15s cubic-bezier(.3,.7,.4,1),width .15s}
+  .twk-seg.dragging .twk-seg-thumb{transition:none}
+  .twk-seg button{appearance:none;position:relative;z-index:1;flex:1;border:0;
+    background:transparent;color:inherit;font:inherit;font-weight:500;min-height:22px;
+    border-radius:6px;cursor:default;padding:4px 6px;line-height:1.2;
+    overflow-wrap:anywhere}
+
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
+    background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+  .twk-toggle[data-on="1"]{background:#34c759}
+  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+
+  .twk-num{display:flex;align-items:center;height:26px;padding:0 0 0 8px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:7px;background:rgba(255,255,255,.6)}
+  .twk-num-lbl{font-weight:500;color:rgba(41,38,27,.6);cursor:ew-resize;
+    user-select:none;padding-right:8px}
+  .twk-num input{flex:1;min-width:0;height:100%;border:0;background:transparent;
+    font:inherit;font-variant-numeric:tabular-nums;text-align:right;padding:0 8px 0 0;
+    outline:none;color:inherit;-moz-appearance:textfield}
+  .twk-num input::-webkit-inner-spin-button,.twk-num input::-webkit-outer-spin-button{
+    -webkit-appearance:none;margin:0}
+  .twk-num-unit{padding-right:8px;color:rgba(41,38,27,.45)}
+
+  .twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;
+    background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:default}
+  .twk-btn:hover{background:rgba(0,0,0,.88)}
+  .twk-btn.secondary{background:rgba(0,0,0,.06);color:inherit}
+  .twk-btn.secondary:hover{background:rgba(0,0,0,.1)}
+
+  .twk-swatch{appearance:none;-webkit-appearance:none;width:56px;height:22px;
+    border:.5px solid rgba(0,0,0,.1);border-radius:6px;padding:0;cursor:default;
+    background:transparent;flex-shrink:0}
+  .twk-swatch::-webkit-color-swatch-wrapper{padding:0}
+  .twk-swatch::-webkit-color-swatch{border:0;border-radius:5.5px}
+  .twk-swatch::-moz-color-swatch{border:0;border-radius:5.5px}
+`;
+
+// ── useTweaks ───────────────────────────────────────────────────────────────
+// Single source of truth for tweak values. setTweak persists via the host
+// (__edit_mode_set_keys → host rewrites the EDITMODE block on disk).
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  // Accepts either setTweak('key', value) or setTweak({ key: value, ... }) so a
+  // useState-style call doesn't write a "[object Object]" key into the persisted
+  // JSON block.
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
+      ? keyOrEdits : { [keyOrEdits]: val };
+    setValues((prev) => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+  }, []);
+  return [values, setTweak];
+}
+
+// ── TweaksPanel ─────────────────────────────────────────────────────────────
+// Floating shell. Registers the protocol listener BEFORE announcing
+// availability — if the announce ran first, the host's activate could land
+// before our handler exists and the toolbar toggle would silently no-op.
+// The close button posts __edit_mode_dismissed so the host's toolbar toggle
+// flips off in lockstep; the host echoes __deactivate_edit_mode back which
+// is what actually hides the panel.
+function TweaksPanel({ title = 'Tweaks', children }) {
+  const [open, setOpen] = React.useState(false);
+  const dragRef = React.useRef(null);
+  const offsetRef = React.useRef({ x: 16, y: 16 });
+  const PAD = 16;
+
+  const clampToViewport = React.useCallback(() => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const w = panel.offsetWidth, h = panel.offsetHeight;
+    const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
+    const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
+    offsetRef.current = {
+      x: Math.min(maxRight, Math.max(PAD, offsetRef.current.x)),
+      y: Math.min(maxBottom, Math.max(PAD, offsetRef.current.y)),
+    };
+    panel.style.right = offsetRef.current.x + 'px';
+    panel.style.bottom = offsetRef.current.y + 'px';
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) return;
+    clampToViewport();
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', clampToViewport);
+      return () => window.removeEventListener('resize', clampToViewport);
+    }
+    const ro = new ResizeObserver(clampToViewport);
+    ro.observe(document.documentElement);
+    return () => ro.disconnect();
+  }, [open, clampToViewport]);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const t = e?.data?.type;
+      if (t === '__activate_edit_mode') setOpen(true);
+      else if (t === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const dismiss = () => {
+    setOpen(false);
+    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+  };
+
+  const onDragStart = (e) => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const r = panel.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const startRight = window.innerWidth - r.right;
+    const startBottom = window.innerHeight - r.bottom;
+    const move = (ev) => {
+      offsetRef.current = {
+        x: startRight - (ev.clientX - sx),
+        y: startBottom - (ev.clientY - sy),
+      };
+      clampToViewport();
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
+  if (!open) return null;
+  return (
+    <>
+      <style>{__TWEAKS_STYLE}</style>
+      <div ref={dragRef} className="twk-panel" data-noncommentable=""
+           style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
+        <div className="twk-hd" onMouseDown={onDragStart}>
+          <b>{title}</b>
+          <button className="twk-x" aria-label="Close tweaks"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={dismiss}>✕</button>
+        </div>
+        <div className="twk-body">{children}</div>
+      </div>
+    </>
+  );
+}
+
+// ── Layout helpers ──────────────────────────────────────────────────────────
+
+function TweakSection({ label, children }) {
+  return (
+    <>
+      <div className="twk-sect">{label}</div>
+      {children}
+    </>
+  );
+}
+
+function TweakRow({ label, value, children, inline = false }) {
+  return (
+    <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
+      <div className="twk-lbl">
+        <span>{label}</span>
+        {value != null && <span className="twk-val">{value}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Controls ────────────────────────────────────────────────────────────────
+
+function TweakSlider({ label, value, min = 0, max = 100, step = 1, unit = '', onChange }) {
+  return (
+    <TweakRow label={label} value={`${value}${unit}`}>
+      <input type="range" className="twk-slider" min={min} max={max} step={step}
+             value={value} onChange={(e) => onChange(Number(e.target.value))} />
+    </TweakRow>
+  );
+}
+
+function TweakToggle({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <button type="button" className="twk-toggle" data-on={value ? '1' : '0'}
+              role="switch" aria-checked={!!value}
+              onClick={() => onChange(!value)}><i /></button>
+    </div>
+  );
+}
+
+function TweakRadio({ label, value, options, onChange }) {
+  const trackRef = React.useRef(null);
+  const [dragging, setDragging] = React.useState(false);
+  const opts = options.map((o) => (typeof o === 'object' ? o : { value: o, label: o }));
+  const idx = Math.max(0, opts.findIndex((o) => o.value === value));
+  const n = opts.length;
+
+  // The active value is read by pointer-move handlers attached for the lifetime
+  // of a drag — ref it so a stale closure doesn't fire onChange for every move.
+  const valueRef = React.useRef(value);
+  valueRef.current = value;
+
+  const segAt = (clientX) => {
+    const r = trackRef.current.getBoundingClientRect();
+    const inner = r.width - 4;
+    const i = Math.floor(((clientX - r.left - 2) / inner) * n);
+    return opts[Math.max(0, Math.min(n - 1, i))].value;
+  };
+
+  const onPointerDown = (e) => {
+    setDragging(true);
+    const v0 = segAt(e.clientX);
+    if (v0 !== valueRef.current) onChange(v0);
+    const move = (ev) => {
+      if (!trackRef.current) return;
+      const v = segAt(ev.clientX);
+      if (v !== valueRef.current) onChange(v);
+    };
+    const up = () => {
+      setDragging(false);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  return (
+    <TweakRow label={label}>
+      <div ref={trackRef} role="radiogroup" onPointerDown={onPointerDown}
+           className={dragging ? 'twk-seg dragging' : 'twk-seg'}>
+        <div className="twk-seg-thumb"
+             style={{ left: `calc(2px + ${idx} * (100% - 4px) / ${n})`,
+                      width: `calc((100% - 4px) / ${n})` }} />
+        {opts.map((o) => (
+          <button key={o.value} type="button" role="radio" aria-checked={o.value === value}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </TweakRow>
+  );
+}
+
+function TweakSelect({ label, value, options, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <select className="twk-field" value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => {
+          const v = typeof o === 'object' ? o.value : o;
+          const l = typeof o === 'object' ? o.label : o;
+          return <option key={v} value={v}>{l}</option>;
+        })}
+      </select>
+    </TweakRow>
+  );
+}
+
+function TweakText({ label, value, placeholder, onChange }) {
+  return (
+    <TweakRow label={label}>
+      <input className="twk-field" type="text" value={value} placeholder={placeholder}
+             onChange={(e) => onChange(e.target.value)} />
+    </TweakRow>
+  );
+}
+
+function TweakNumber({ label, value, min, max, step = 1, unit = '', onChange }) {
+  const clamp = (n) => {
+    if (min != null && n < min) return min;
+    if (max != null && n > max) return max;
+    return n;
+  };
+  const startRef = React.useRef({ x: 0, val: 0 });
+  const onScrubStart = (e) => {
+    e.preventDefault();
+    startRef.current = { x: e.clientX, val: value };
+    const decimals = (String(step).split('.')[1] || '').length;
+    const move = (ev) => {
+      const dx = ev.clientX - startRef.current.x;
+      const raw = startRef.current.val + dx * step;
+      const snapped = Math.round(raw / step) * step;
+      onChange(clamp(Number(snapped.toFixed(decimals))));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  return (
+    <div className="twk-num">
+      <span className="twk-num-lbl" onPointerDown={onScrubStart}>{label}</span>
+      <input type="number" value={value} min={min} max={max} step={step}
+             onChange={(e) => onChange(clamp(Number(e.target.value)))} />
+      {unit && <span className="twk-num-unit">{unit}</span>}
+    </div>
+  );
+}
+
+function TweakColor({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <input type="color" className="twk-swatch" value={value}
+             onChange={(e) => onChange(e.target.value)} />
+    </div>
+  );
+}
+
+function TweakButton({ label, onClick, secondary = false }) {
+  return (
+    <button type="button" className={secondary ? 'twk-btn secondary' : 'twk-btn'}
+            onClick={onClick}>{label}</button>
+  );
+}
+
+Object.assign(window, {
+  useTweaks, TweaksPanel, TweakSection, TweakRow,
+  TweakSlider, TweakToggle, TweakRadio, TweakSelect,
+  TweakText, TweakNumber, TweakColor, TweakButton,
+});
+
+</script>
+
+  <script type="text/babel">
+    const THEMES = {
+      claude:  { accent: '#D9773E', name: 'Claude', glow: '#D9773E' },
+      magenta: { accent: '#E05A9C', name: '品红女仆', glow: '#E05A9C' },
+      green:   { accent: '#4AE04A', name: '终端绿', glow: '#4AE04A' },
+    };
+
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "theme": "claude",
+      "showBanner": true,
+      "fontSize": 14,
+      "maxWidth": 720
+    }/*EDITMODE-END*/;
+
+    const THEME_KEYS = Object.keys(THEMES);
+
+    function ThemeSwitcher({ current, onCycle, accent }) {
+      const themeName = THEMES[current]?.name || '';
+      return React.createElement('span', {
+        role: 'button',
+        tabIndex: 0,
+        title: `主题: ${themeName} · 点击切换`,
+        onClick: (e) => { e.stopPropagation(); onCycle(); },
+        onKeyDown: (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onCycle(); }
+        },
+        onMouseEnter: (e) => { e.currentTarget.style.transform = 'scale(1.25)'; },
+        onMouseLeave: (e) => { e.currentTarget.style.transform = 'scale(1)'; },
+        style: {
+          color: accent,
+          textShadow: `0 0 6px ${accent}66`,
+          cursor: 'pointer',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          userSelect: 'none',
+          display: 'inline-block',
+          lineHeight: 1,
+          transition: 'color 0.2s, text-shadow 0.2s, transform 0.15s',
+        },
+      }, '◆');
+    }
+
+    function App() {
+      const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const [data, setData] = React.useState(null);
+      const theme = THEMES[tweaks.theme] || THEMES.claude;
+      const accent = theme.accent;
+
+      // 首次加载：从 MVU 抓 stat_data，失败兜底 MOCK_DATA
+      React.useEffect(() => {
+        let cancelled = false;
+        loadData().then(d => { if (!cancelled) setData(d); });
+        return () => { cancelled = true; };
+      }, []);
+
+      // MVU 变量更新事件：自动刷新视图（仅酒馆环境生效，本地预览为 no-op）
+      React.useEffect(() => {
+        const dispose = subscribeMvuUpdates(setData);
+        return dispose;
+      }, []);
+
+      const cycleTheme = React.useCallback(() => {
+        const idx = THEME_KEYS.indexOf(tweaks.theme);
+        const next = THEME_KEYS[(idx + 1) % THEME_KEYS.length];
+        setTweak('theme', next);
+      }, [tweaks.theme, setTweak]);
+
+      // Apply dynamic styles
+      React.useEffect(() => {
+        document.documentElement.style.setProperty('--accent', accent);
+        document.documentElement.style.setProperty('--border', accent + '44');
+        document.documentElement.style.setProperty('--accent-glow', accent + '88');
+        document.documentElement.style.setProperty('--accent-faint', accent + '22');
+        document.documentElement.style.fontSize = tweaks.fontSize + 'px';
+      }, [accent, tweaks.fontSize]);
+
+      // 加载占位：在拿到 data 之前显示终端联机提示
+      if (!data) {
+        return React.createElement('div', {
+          style: {
+            maxWidth: tweaks.maxWidth + 'px', margin: '0 auto',
+            padding: '40px 16px', textAlign: 'center',
+            color: accent, fontFamily: 'monospace', fontSize: '13px',
+          }
+        },
+          React.createElement('div', { className: 'glow-pulse' },
+            '>>> 正在连接情报终端 ...'),
+          React.createElement('div', {
+            style: { color: '#666', fontSize: '11px', marginTop: '8px' }
+          }, '[ MVU::stat_data handshake ]')
+        );
+      }
+
+      return React.createElement('div', {
+        style: { maxWidth: tweaks.maxWidth + 'px', margin: '0 auto' }
+      },
+        // ASCII Banner
+        tweaks.showBanner && React.createElement('div', {
+          className: 'ascii-banner glow-pulse',
+          style: { color: accent }
+        }, ASCII.banner),
+
+        // Status Bar (main collapsed entry point) — theme switcher lives in its right slot
+        React.createElement(StatusBar, {
+          data,
+          borderColor: accent,
+          rightSlot: React.createElement(ThemeSwitcher, {
+            current: tweaks.theme, onCycle: cycleTheme, accent,
+          }),
+        }),
+
+        // Footer
+        React.createElement('div', { className: 'terminal-footer' },
+          `═══ 秋叶原冥途战争 情报终端 v2.6.4 ═══`
+        ),
+
+        // Tweaks
+        React.createElement(TweaksPanel, { title: '终端设置' },
+          React.createElement(TweakSection, { label: '外观' }),
+          React.createElement(TweakToggle, { label: '显示ASCII横幅', value: tweaks.showBanner, onChange: v => setTweak('showBanner', v) }),
+          React.createElement(TweakSlider, { label: '字体大小', value: tweaks.fontSize, onChange: v => setTweak('fontSize', v), min: 10, max: 20, step: 1 }),
+          React.createElement(TweakSlider, { label: '最大宽度', value: tweaks.maxWidth, onChange: v => setTweak('maxWidth', v), min: 400, max: 1200, step: 20 }),
+        ),
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
+</body>
+</html>

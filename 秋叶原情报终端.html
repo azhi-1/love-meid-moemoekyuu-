@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>秋叶原冥途战争 · 情报终端</title>
+  <meta name="ext-resource-dependency" content="https://static.zeoseven.com/zsft/129/main/result.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=JetBrains+Mono:wght@400;700&display=swap">
+  <style>
+
+    :root {
+      --accent: #D9773E;
+      --bg: #080808;
+      --surface: #0A0A0A;
+      --text: #CCCCCC;
+      --dim: #666666;
+      --border: #D9773E44;
+      --accent-glow: #D9773E88;
+      --accent-faint: #D9773E22;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'ZSFT 129', 'DotGothic16', 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 14px;
+      min-height: 420px;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 0; }
+
+    /* ASCII banner */
+    .ascii-banner {
+      color: var(--accent);
+      font-size: 10px;
+      line-height: 1.25;
+      text-align: center;
+      padding: 8px 4px;
+      white-space: pre;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+      background: #0A0A0A;
+      text-shadow: 0 0 8px var(--border);
+    }
+
+    /* Pre tags */
+    pre {
+      font-family: 'ZSFT 129', 'JetBrains Mono', monospace;
+      overflow-x: auto;
+    }
+
+    /* Selection */
+    ::selection {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { text-shadow: 0 0 4px var(--border); }
+      50% { text-shadow: 0 0 12px var(--accent-glow); }
+    }
+
+    .glow-pulse { animation: glowPulse 3s ease-in-out infinite; }
+
+    /* RankBadge SYSTEM 类徽章脉冲 */
+    @keyframes rankPulse {
+      0%, 100% { box-shadow: 0 0 4px currentColor; opacity: 1; }
+      50%      { box-shadow: 0 0 12px currentColor; opacity: 0.85; }
+    }
+
+    .rank-pulse { animation: rankPulse 1.6s ease-in-out infinite; }
+
+    /* Root container */
+    #root {
+      max-width: 720px;
+      margin: 0 auto;
+      animation: fadeIn 0.3s ease;
+    }
+
+    /* Footer */
+    .terminal-footer {
+      text-align: center;
+      padding: 8px;
+      color: #333;
+      font-size: 10px;
+      border-top: 1px solid var(--accent-faint);
+    }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="mock-data.jsx"></script>
+  <script type="text/babel" src="mvu-adapter.jsx"></script>
+  <script type="text/babel" src="ascii-assets.jsx"></script>
+  <script type="text/babel" src="panels.jsx"></script>
+  <script type="text/babel" src="data-panels.jsx"></script>
+  <script type="text/babel" src="posts.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+
+  <script type="text/babel">
+    const THEMES = {
+      claude:  { accent: '#D9773E', name: 'Claude', glow: '#D9773E' },
+      magenta: { accent: '#E05A9C', name: '品红女仆', glow: '#E05A9C' },
+      green:   { accent: '#4AE04A', name: '终端绿', glow: '#4AE04A' },
+    };
+
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "theme": "claude",
+      "showBanner": true,
+      "fontSize": 14,
+      "maxWidth": 720
+    }/*EDITMODE-END*/;
+
+    const THEME_KEYS = Object.keys(THEMES);
+
+    function ThemeSwitcher({ current, onCycle, accent }) {
+      const themeName = THEMES[current]?.name || '';
+      return React.createElement('span', {
+        role: 'button',
+        tabIndex: 0,
+        title: `主题: ${themeName} · 点击切换`,
+        onClick: (e) => { e.stopPropagation(); onCycle(); },
+        onKeyDown: (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onCycle(); }
+        },
+        onMouseEnter: (e) => { e.currentTarget.style.transform = 'scale(1.25)'; },
+        onMouseLeave: (e) => { e.currentTarget.style.transform = 'scale(1)'; },
+        style: {
+          color: accent,
+          textShadow: `0 0 6px ${accent}66`,
+          cursor: 'pointer',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          userSelect: 'none',
+          display: 'inline-block',
+          lineHeight: 1,
+          transition: 'color 0.2s, text-shadow 0.2s, transform 0.15s',
+        },
+      }, '◆');
+    }
+
+    function App() {
+      const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const [data, setData] = React.useState(null);
+      const theme = THEMES[tweaks.theme] || THEMES.claude;
+      const accent = theme.accent;
+
+      // 首次加载：从 MVU 抓 stat_data，失败兜底 MOCK_DATA
+      React.useEffect(() => {
+        let cancelled = false;
+        loadData().then(d => { if (!cancelled) setData(d); });
+        return () => { cancelled = true; };
+      }, []);
+
+      // MVU 变量更新事件：自动刷新视图（仅酒馆环境生效，本地预览为 no-op）
+      React.useEffect(() => {
+        const dispose = subscribeMvuUpdates(setData);
+        return dispose;
+      }, []);
+
+      const cycleTheme = React.useCallback(() => {
+        const idx = THEME_KEYS.indexOf(tweaks.theme);
+        const next = THEME_KEYS[(idx + 1) % THEME_KEYS.length];
+        setTweak('theme', next);
+      }, [tweaks.theme, setTweak]);
+
+      // Apply dynamic styles
+      React.useEffect(() => {
+        document.documentElement.style.setProperty('--accent', accent);
+        document.documentElement.style.setProperty('--border', accent + '44');
+        document.documentElement.style.setProperty('--accent-glow', accent + '88');
+        document.documentElement.style.setProperty('--accent-faint', accent + '22');
+        document.documentElement.style.fontSize = tweaks.fontSize + 'px';
+      }, [accent, tweaks.fontSize]);
+
+      // 加载占位：在拿到 data 之前显示终端联机提示
+      if (!data) {
+        return React.createElement('div', {
+          style: {
+            maxWidth: tweaks.maxWidth + 'px', margin: '0 auto',
+            padding: '40px 16px', textAlign: 'center',
+            color: accent, fontFamily: 'monospace', fontSize: '13px',
+          }
+        },
+          React.createElement('div', { className: 'glow-pulse' },
+            '>>> 正在连接情报终端 ...'),
+          React.createElement('div', {
+            style: { color: '#666', fontSize: '11px', marginTop: '8px' }
+          }, '[ MVU::stat_data handshake ]')
+        );
+      }
+
+      return React.createElement('div', {
+        style: { maxWidth: tweaks.maxWidth + 'px', margin: '0 auto' }
+      },
+        // ASCII Banner
+        tweaks.showBanner && React.createElement('div', {
+          className: 'ascii-banner glow-pulse',
+          style: { color: accent }
+        }, ASCII.banner),
+
+        // Status Bar (main collapsed entry point) — theme switcher lives in its right slot
+        React.createElement(StatusBar, {
+          data,
+          borderColor: accent,
+          rightSlot: React.createElement(ThemeSwitcher, {
+            current: tweaks.theme, onCycle: cycleTheme, accent,
+          }),
+        }),
+
+        // Footer
+        React.createElement('div', { className: 'terminal-footer' },
+          `═══ 秋叶原冥途战争 情报终端 v2.6.4 ═══`
+        ),
+
+        // Tweaks
+        React.createElement(TweaksPanel, { title: '终端设置' },
+          React.createElement(TweakSection, { label: '外观' }),
+          React.createElement(TweakToggle, { label: '显示ASCII横幅', value: tweaks.showBanner, onChange: v => setTweak('showBanner', v) }),
+          React.createElement(TweakSlider, { label: '字体大小', value: tweaks.fontSize, onChange: v => setTweak('fontSize', v), min: 10, max: 20, step: 1 }),
+          React.createElement(TweakSlider, { label: '最大宽度', value: tweaks.maxWidth, onChange: v => setTweak('maxWidth', v), min: 400, max: 1200, step: 20 }),
+        ),
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
+</body>
+</html>
