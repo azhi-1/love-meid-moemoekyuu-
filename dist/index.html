@@ -22,7 +22,8 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      background: var(--bg);
+      /* 透明底，让酒馆消息底色透出来，与终端卡片融合 */
+      background: transparent;
       color: var(--text);
       font-family: 'ZSFT 129', 'DotGothic16', 'JetBrains Mono', 'Courier New', monospace;
       font-size: 14px;
@@ -32,7 +33,7 @@
 
     /* Scrollbar */
     ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 0; }
 
     /* ASCII banner */
