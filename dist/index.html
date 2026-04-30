@@ -301,40 +301,55 @@ window.adaptStatData = adaptStatData;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // loadData: 主入口，返回 Promise<frontEndData>
+//
+// 关键设计：
+//   1) 不预检 typeof Mvu —— React useEffect 触发瞬间 Mvu 可能还没注入，
+//      必须先 await waitGlobalInitialized('Mvu') 等它就绪。
+//   2) 回溯到最后一条 assistant 楼层取 stat_data —— user 楼层不携带 MVU 状态。
+//   3) 任意环节出错 → 兜底 MOCK_DATA。
 // ─────────────────────────────────────────────────────────────────────────────
-async function loadData({ timeoutMs = 3000 } = {}) {
-  const hasMvu =
-    typeof Mvu !== 'undefined' &&
-    typeof waitGlobalInitialized === 'function' &&
-    typeof waitUntil === 'function' &&
-    typeof getVariables === 'function' &&
-    typeof getCurrentMessageId === 'function';
-
-  if (!hasMvu) {
-    console.info('[mvu-adapter] MVU 接口不可用 (本地预览或非酒馆环境)，使用 MOCK_DATA');
+async function loadData() {
+  // 非酒馆环境（本地 file:// 预览）：酒馆助手接口完全不存在，直接 mock
+  if (
+    typeof waitGlobalInitialized !== 'function' ||
+    typeof getLastMessageId !== 'function' ||
+    typeof getChatMessages !== 'function'
+  ) {
+    console.info('[mvu-adapter] 非酒馆环境，使用 MOCK_DATA');
     return window.MOCK_DATA;
   }
 
   try {
+    // 1) 等 MVU 框架就绪
     await waitGlobalInitialized('Mvu');
-    await waitUntil(
-      () => _.has(getVariables({ type: 'message' }), 'stat_data'),
-      { timeout: timeoutMs },
-    );
 
-    const variables = Mvu.getMvuData({
-      type: 'message',
-      message_id: getCurrentMessageId(),
-    });
-    const stat = _.get(variables, 'stat_data');
+    // 2) 回溯找最后一条 assistant 楼层（user 楼层没有 stat_data）
+    const lastMsgId = getLastMessageId();
+    const assistantMsgs = getChatMessages(`0-${lastMsgId}`, { role: 'assistant' });
+    const targetMsgId =
+      assistantMsgs.length > 0
+        ? assistantMsgs[assistantMsgs.length - 1].message_id
+        : lastMsgId;
 
-    if (!stat) throw new Error('stat_data is empty');
+    // 3) 优先 Mvu.getMvuData，降级 getVariables
+    const variables =
+      typeof Mvu !== 'undefined' && typeof Mvu.getMvuData === 'function'
+        ? Mvu.getMvuData({ type: 'message', message_id: targetMsgId })
+        : getVariables({ type: 'message', message_id: targetMsgId });
+
+    // 4) 提取 stat_data（lodash 在酒馆助手 iframe 里默认存在，保险起见兜底）
+    const stat =
+      typeof _ !== 'undefined' && _.get
+        ? _.get(variables, 'stat_data')
+        : variables && variables.stat_data;
+
+    if (!stat) throw new Error(`stat_data 为空 (target msg #${targetMsgId})`);
 
     const adapted = adaptStatData(stat);
-    console.info('[mvu-adapter] MVU 数据加载完成', adapted);
+    console.info('[mvu-adapter] 已加载 MVU 数据', { targetMsgId, adapted });
     return adapted;
   } catch (e) {
-    console.warn('[mvu-adapter] 抓取 MVU 失败，回退到 MOCK_DATA：', e);
+    console.warn('[mvu-adapter] 抓取 MVU 失败，回退 MOCK_DATA：', e);
     return window.MOCK_DATA;
   }
 }
@@ -343,27 +358,43 @@ window.loadData = loadData;
 // ─────────────────────────────────────────────────────────────────────────────
 // subscribeMvuUpdates: 监听 MVU 变量变化，触发回调（供 App 实现自动刷新）
 // 在非酒馆环境中是 no-op，返回一个空 dispose 函数
+//
+// 与 loadData 同一个坑：调用瞬间 Mvu 可能还没注入，所以异步 await 它就绪后再绑定。
 // ─────────────────────────────────────────────────────────────────────────────
 function subscribeMvuUpdates(onUpdate) {
-  const hasMvuEvents =
-    typeof Mvu !== 'undefined' &&
-    Mvu.events &&
-    typeof eventOn === 'function' &&
-    typeof eventRemoveListener === 'function';
+  if (typeof eventOn !== 'function' || typeof eventRemoveListener !== 'function') {
+    return () => {};
+  }
 
-  if (!hasMvuEvents) return () => {};
+  let disposed = false;
+  let dispose = () => { disposed = true; };
 
-  const handler = (newVars) => {
+  (async () => {
     try {
-      const stat = _.get(newVars, 'stat_data');
-      if (stat) onUpdate(adaptStatData(stat));
-    } catch (e) {
-      console.warn('[mvu-adapter] VARIABLE_UPDATE_ENDED 处理失败：', e);
-    }
-  };
+      if (typeof waitGlobalInitialized === 'function') {
+        await waitGlobalInitialized('Mvu');
+      }
+      if (disposed || typeof Mvu === 'undefined' || !Mvu.events) return;
 
-  eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, handler);
-  return () => eventRemoveListener(Mvu.events.VARIABLE_UPDATE_ENDED, handler);
+      // 事件回调签名因 MVU 版本而异，统一改为重新走一次 loadData，简单且稳。
+      const handler = async () => {
+        try {
+          const data = await loadData();
+          onUpdate(data);
+        } catch (e) {
+          console.warn('[mvu-adapter] VARIABLE_UPDATE_ENDED 处理失败：', e);
+        }
+      };
+
+      eventOn(Mvu.events.VARIABLE_UPDATE_ENDED, handler);
+      dispose = () =>
+        eventRemoveListener(Mvu.events.VARIABLE_UPDATE_ENDED, handler);
+    } catch (e) {
+      console.warn('[mvu-adapter] 监听 MVU 变量失败：', e);
+    }
+  })();
+
+  return () => dispose();
 }
 window.subscribeMvuUpdates = subscribeMvuUpdates;
 
